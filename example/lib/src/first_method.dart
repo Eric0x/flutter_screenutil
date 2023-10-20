@@ -1,3 +1,4 @@
+import 'package:example/responsive_widgets.su.dart';
 import 'package:example/src/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,20 +10,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // In first method you only need to wrap [MaterialApp] with [ScreenUtilInit] and that's it
     return ScreenUtilInit(
-      builder: (context) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          // Use this line to prevent extra rebuilds
-          useInheritedMediaQuery: true,
-          title: 'First Method',
-          // You can use the library anywhere in the app even in theme
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-            textTheme: TextTheme(bodyText2: TextStyle(fontSize: 16.sp)),
-          ),
-          home: HomePage(title: 'First Method'),
-        );
-      },
+      responsiveWidgets: responsiveWidgets,
+      ensureScreenSize: true,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'First Method',
+        // You can use the library anywhere in the app even in theme
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          textTheme: Typography(platform: TargetPlatform.iOS)
+              .black
+              .apply(fontSizeFactor: 1),
+        ),
+        home: const HomePage(title: 'First Method'),
+      ),
     );
   }
 }

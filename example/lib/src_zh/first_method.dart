@@ -9,18 +9,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // In first method you only need to wrap [MaterialApp] with [ScreenUtilInit] and that's it
     return ScreenUtilInit(
-      builder: (context) {
+      builder: (_, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: '第一种方法',
           // You can use the library anywhere in the app even in theme
           theme: ThemeData(
             primarySwatch: Colors.blue,
-            textTheme: TextTheme(bodyText2: TextStyle(fontSize: 30.sp)),
+            textTheme: TextTheme(bodyMedium: TextStyle(fontSize: 30.sp)),
           ),
-          home: HomePage(title: '第一种方法'),
+          home: child,
         );
       },
+      child: HomePage(title: '第一种方法'),
     );
   }
 }

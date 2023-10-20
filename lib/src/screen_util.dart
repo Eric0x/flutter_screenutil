@@ -3,33 +3,33 @@
  * email: zhuoyuan93@gmail.com
  */
 
+import 'dart:io';
 import 'dart:math' show min, max;
-import 'dart:ui' show FlutterWindow;
+import 'dart:ui' as ui show FlutterView;
 
 import 'package:flutter/widgets.dart';
 
+typedef FontSizeResolver = double Function(num fontSize, ScreenUtil instance);
+
 class ScreenUtil {
   static const Size defaultSize = Size(360, 690);
-  static late ScreenUtil _instance;
+  static ScreenUtil _instance = ScreenUtil._();
 
   /// UI设计中手机尺寸 , dp
   /// Size of the phone in UI Design , dp
-  late Size uiSize;
+  late Size _uiSize;
 
   ///屏幕方向
   late Orientation _orientation;
 
-  late double _screenWidth;
-  late double _screenHeight;
   late bool _minTextAdapt;
-  BuildContext? context;
+  late MediaQueryData _data;
   late bool _splitScreenMode;
+  FontSizeResolver? fontSizeResolver;
 
   ScreenUtil._();
 
-  factory ScreenUtil() {
-    return _instance;
-  }
+  factory ScreenUtil() => _instance;
 
   /// Manually wait for window size to be initialized
   ///
@@ -54,50 +54,117 @@ class ScreenUtil {
   ///   )
   /// ```
   static Future<void> ensureScreenSize([
-    FlutterWindow? window,
+    ui.FlutterView? window,
     Duration duration = const Duration(milliseconds: 10),
   ]) async {
     final binding = WidgetsFlutterBinding.ensureInitialized();
-    window ??= binding.window;
+    binding.deferFirstFrame();
 
-    if (window.viewConfiguration.geometry.isEmpty) {
-      return Future.delayed(duration, () async {
-        binding.deferFirstFrame();
-        await ensureScreenSize(window, duration);
-        return binding.allowFirstFrame();
+    await Future.doWhile(() {
+      if (window == null) {
+        window = binding.platformDispatcher.implicitView;
+      }
+
+      if (window == null || window!.physicalSize.isEmpty) {
+        return Future.delayed(duration, () => true);
+      }
+
+      return false;
+    });
+
+    binding.allowFirstFrame();
+  }
+
+  Set<Element>? _elementsToRebuild;
+
+  /// ### Experimental
+  /// Register current page and all its descendants to rebuild.
+  /// Helpful when building for web and desktop
+  static void registerToBuild(
+    BuildContext context, [
+    bool withDescendants = false,
+  ]) {
+    (_instance._elementsToRebuild ??= {}).add(context as Element);
+
+    if (withDescendants) {
+      context.visitChildren((element) {
+        registerToBuild(element, true);
       });
     }
   }
 
-  static void setContext(BuildContext context) {
-    _instance.context = context;
+  static void configure({
+    MediaQueryData? data,
+    Size? designSize,
+    bool? splitScreenMode,
+    bool? minTextAdapt,
+    FontSizeResolver? fontSizeResolver,
+  }) {
+    try {
+      if (data != null)
+        _instance._data = data;
+      else
+        data = _instance._data;
+
+      if (designSize != null)
+        _instance._uiSize = designSize;
+      else
+        designSize = _instance._uiSize;
+    } catch (_) {
+      throw Exception(
+          'You must either use ScreenUtil.init or ScreenUtilInit first');
+    }
+
+    final MediaQueryData? deviceData = data.nonEmptySizeOrNull();
+    final Size deviceSize = deviceData?.size ?? designSize;
+
+    final orientation = deviceData?.orientation ??
+        (deviceSize.width > deviceSize.height
+            ? Orientation.landscape
+            : Orientation.portrait);
+
+    _instance
+      ..fontSizeResolver = fontSizeResolver ?? _instance.fontSizeResolver
+      .._minTextAdapt = minTextAdapt ?? _instance._minTextAdapt
+      .._splitScreenMode = splitScreenMode ?? _instance._splitScreenMode
+      .._orientation = orientation;
+
+    _instance._elementsToRebuild?.forEach((el) => el.markNeedsBuild());
   }
 
   /// Initializing the library.
   static void init(
     BuildContext context, {
-    Orientation? orientation,
-    Size? deviceSize,
     Size designSize = defaultSize,
     bool splitScreenMode = false,
     bool minTextAdapt = false,
+    FontSizeResolver? fontSizeResolver,
   }) {
-    final deviceData = MediaQuery.maybeOf(context).nonEmptySizeOrNull();
+    return configure(
+      data: MediaQuery.maybeOf(context),
+      designSize: designSize,
+      splitScreenMode: splitScreenMode,
+      minTextAdapt: minTextAdapt,
+      fontSizeResolver: fontSizeResolver,
+    );
+  }
 
-    deviceSize ??= deviceData?.size ?? designSize;
-    orientation ??= deviceData?.orientation ??
-        (deviceSize.width > deviceSize.height
-            ? Orientation.landscape
-            : Orientation.portrait);
-
-    _instance = ScreenUtil._()
-      ..uiSize = designSize
-      .._splitScreenMode = splitScreenMode
-      .._minTextAdapt = minTextAdapt
-      .._orientation = orientation
-      .._screenWidth = deviceSize.width
-      .._screenHeight = deviceSize.height
-      ..context = deviceData != null ? context : null;
+  static Future<void> ensureScreenSizeAndInit(
+    BuildContext context, {
+    Size designSize = defaultSize,
+    bool splitScreenMode = false,
+    bool minTextAdapt = false,
+    FontSizeResolver? fontSizeResolver,
+  }) {
+    return ScreenUtil.ensureScreenSize().then((_) {
+      return configure(
+        data: MediaQuery.maybeOf(context),
+        designSize: designSize,
+        minTextAdapt: minTextAdapt,
+        splitScreenMode: splitScreenMode,
+        fontSizeResolver: fontSizeResolver,
+      );
+    });
   }
 
   ///获取屏幕方向
@@ -106,42 +173,36 @@ class ScreenUtil {
 
   /// 每个逻辑像素的字体像素数，字体的缩放比例
   /// The number of font pixels for each logical pixel.
-  double get textScaleFactor =>
-      context != null ? MediaQuery.of(context!).textScaleFactor : 1;
+  double get textScaleFactor => _data.textScaleFactor;
 
   /// 设备的像素密度
   /// The size of the media in logical pixels (e.g, the size of the screen).
-  double? get pixelRatio =>
-      context != null ? MediaQuery.of(context!).devicePixelRatio : 1;
+  double? get pixelRatio => _data.devicePixelRatio;
 
   /// 当前设备宽度 dp
   /// The horizontal extent of this size.
-  double get screenWidth =>
-      context != null ? MediaQuery.of(context!).size.width : _screenWidth;
+  double get screenWidth => _data.size.width;
 
   ///当前设备高度 dp
   ///The vertical extent of this size. dp
-  double get screenHeight =>
-      context != null ? MediaQuery.of(context!).size.height : _screenHeight;
+  double get screenHeight => _data.size.height;
 
   /// 状态栏高度 dp 刘海屏会更高
   /// The offset from the top, in dp
-  double get statusBarHeight =>
-      context == null ? 0 : MediaQuery.of(context!).padding.top;
+  double get statusBarHeight => _data.padding.top;
 
   /// 底部安全区距离 dp
   /// The offset from the bottom, in dp
-  double get bottomBarHeight =>
-      context == null ? 0 : MediaQuery.of(context!).padding.bottom;
+  double get bottomBarHeight => _data.padding.bottom;
 
   /// 实际尺寸与UI设计的比例
   /// The ratio of actual width to UI design
-  double get scaleWidth => screenWidth / uiSize.width;
+  double get scaleWidth => screenWidth / _uiSize.width;
 
-  ///  /// The ratio of actual height to UI design
+  /// The ratio of actual height to UI design
   double get scaleHeight =>
       (_splitScreenMode ? max(screenHeight, 700) : screenHeight) /
-      uiSize.height;
+      _uiSize.height;
 
   double get scaleText =>
       _minTextAdapt ? min(scaleWidth, scaleHeight) : scaleWidth;
@@ -167,24 +228,75 @@ class ScreenUtil {
   ///Adapt according to the smaller of width or height
   double radius(num r) => r * min(scaleWidth, scaleHeight);
 
+  /// Adapt according to the both width and height
+  double diagonal(num d) => d * scaleHeight * scaleWidth;
+
+  /// Adapt according to the maximum value of scale width and scale height
+  double diameter(num d) => d * max(scaleWidth, scaleHeight);
+
   ///字体大小适配方法
   ///- [fontSize] UI设计上字体的大小,单位dp.
   ///Font size adaptation method
   ///- [fontSize] The size of the font on the UI design, in dp.
-  double setSp(num fontSize) => fontSize * scaleText;
+  double setSp(num fontSize) =>
+      fontSizeResolver?.call(fontSize, _instance) ?? fontSize * scaleText;
 
-  Widget setVerticalSpacing(num height) => SizedBox(height: setHeight(height));
+  DeviceType deviceType() {
+    DeviceType deviceType;
+    switch (Platform.operatingSystem) {
+      case 'android':
+      case 'ios':
+        deviceType = DeviceType.mobile;
+        if ((orientation == Orientation.portrait && screenWidth < 600) ||
+            (orientation == Orientation.landscape && screenHeight < 600)) {
+          deviceType = DeviceType.mobile;
+        } else {
+          deviceType = DeviceType.tablet;
+        }
+        break;
+      case 'linux':
+        deviceType = DeviceType.linux;
+        break;
+      case 'macos':
+        deviceType = DeviceType.mac;
+        break;
+      case 'windows':
+        deviceType = DeviceType.windows;
+        break;
+      case 'fuchsia':
+        deviceType = DeviceType.fuchsia;
+        break;
+      default:
+        deviceType = DeviceType.web;
+    }
+    return deviceType;
+  }
 
-  Widget setVerticalSpacingFromWidth(num height) =>
+  SizedBox setVerticalSpacing(num height) =>
+      SizedBox(height: setHeight(height));
+
+  SizedBox setVerticalSpacingFromWidth(num height) =>
       SizedBox(height: setWidth(height));
 
-  Widget setHorizontalSpacing(num width) => SizedBox(width: setWidth(width));
+  SizedBox setHorizontalSpacing(num width) => SizedBox(width: setWidth(width));
 
-  Widget setHorizontalSpacingRadius(num width) =>
+  SizedBox setHorizontalSpacingRadius(num width) =>
       SizedBox(width: radius(width));
 
-  Widget setVerticalSpacingRadius(num height) =>
+  SizedBox setVerticalSpacingRadius(num height) =>
       SizedBox(height: radius(height));
+
+  SizedBox setHorizontalSpacingDiameter(num width) =>
+      SizedBox(width: diameter(width));
+
+  SizedBox setVerticalSpacingDiameter(num height) =>
+      SizedBox(height: diameter(height));
+
+  SizedBox setHorizontalSpacingDiagonal(num width) =>
+      SizedBox(width: diagonal(width));
+
+  SizedBox setVerticalSpacingDiagonal(num height) =>
+      SizedBox(height: diagonal(height));
 }
 
 extension on MediaQueryData? {
@@ -195,3 +307,5 @@ extension on MediaQueryData? {
       return this;
   }
 }
+
+enum DeviceType { mobile, tablet, web, mac, windows, linux, fuchsia }

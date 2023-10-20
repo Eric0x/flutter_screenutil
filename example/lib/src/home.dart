@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class HomePageScaffold extends StatelessWidget {
-  const HomePageScaffold({Key? key, required this.title}) : super(key: key);
+class HomePageScaffold extends StatelessWidget with SU {
+  const HomePageScaffold({Key? key, this.title = ''}) : super(key: key);
 
-  void printScreenInformation() {
+  void printScreenInformation(BuildContext context) {
     print('Device Size:${Size(1.sw, 1.sh)}');
     print('Device pixel density:${ScreenUtil().pixelRatio}');
     print('Bottom safe zone distance dp:${ScreenUtil().bottomBarHeight}dp');
@@ -21,8 +21,12 @@ class HomePageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    printScreenInformation();
+    printScreenInformation(context);
 
+    /// Uncomment if you wanna force current widget to be rebuilt with updated values
+    /// Must use it if you use the second method, or if you use ScreenUtilInit's child.
+    /// Note: don't use it along with ScreenUtil.init()
+    // ScreenUtil.registerToBuild(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -31,6 +35,7 @@ class HomePageScaffold extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            RSizedBox.square(dimension: 20),
             Row(
               children: <Widget>[
                 // Using Extensions
@@ -50,10 +55,9 @@ class HomePageScaffold extends StatelessWidget {
                 ),
                 // Without using Extensions
                 Container(
-                  padding: EdgeInsets.all(ScreenUtil().setWidth(10)),
-                  width: ScreenUtil().setWidth(180),
-                  height: ScreenUtil().setHeight(200),
                   color: Colors.blue,
+                  constraints: BoxConstraints(maxWidth: 180, minHeight: 200).hw,
+                  padding: EdgeInsets.all(10.w),
                   child: Text(
                     'My design draft width: 180dp\n\n'
                     'My design draft height: 200dp',
@@ -66,10 +70,13 @@ class HomePageScaffold extends StatelessWidget {
               ],
             ),
             Container(
-              padding: EdgeInsets.all(10.w),
+              padding: EdgeInsets.all(10).w,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(16).w),
+                color: Colors.green,
+              ),
               width: 100.r,
               height: 100.r,
-              color: Colors.green,
               child: Text(
                 'I am a square with a side length of 100',
                 style: TextStyle(
@@ -78,38 +85,123 @@ class HomePageScaffold extends StatelessWidget {
                 ),
               ),
             ),
-            Text('Device width:${ScreenUtil().screenWidth}dp'),
-            Text('Device height:${ScreenUtil().screenHeight}dp'),
-            Text('Device pixel density:${ScreenUtil().pixelRatio}'),
-            Text('Bottom safe zone distance:${ScreenUtil().bottomBarHeight}dp'),
-            Text('Status bar height:${ScreenUtil().statusBarHeight}dp'),
-            Text(
-                'The ratio of actual width to UI design:${ScreenUtil().scaleWidth}'),
-            Text(
-                'The ratio of actual height to UI design:${ScreenUtil().scaleHeight}'),
-            10.verticalSpace,
-            Text('System font scaling factor:${ScreenUtil().textScaleFactor}'),
-            5.verticalSpace,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  '16sp, will not change with the system.',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16.sp,
+            Padding(
+              padding: const EdgeInsets.all(18).r,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) {
+                          return Dialog(
+                            child: Padding(
+                              padding: EdgeInsets.all(12.r),
+                              child: Column(
+                                children: [
+                                  const Text('Dialog'),
+                                  Spacer(),
+                                  TextField(),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: const Text('Show Dialog'),
                   ),
-                  textScaleFactor: 1.0,
-                ),
-                Text(
-                  '16sp,if data is not set in MediaQuery,my font size will change with the system.',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16.sp,
+                  18.verticalSpace,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) {
+                          return const HomePageScaffold();
+                        }),
+                      );
+                    },
+                    child: const Text('Go to next page'),
                   ),
-                ),
-              ],
-            )
+                  18.verticalSpace,
+                  ElevatedButton(
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Container(
+                            height: 200.w +
+                                MediaQuery.of(context).viewInsets.bottom,
+                            color: Colors.amber,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  const Text('Modal BottomSheet'),
+                                  Spacer(),
+                                  TextField(),
+                                  ElevatedButton(
+                                    child: const Text('Close BottomSheet'),
+                                    onPressed: Navigator.of(context).pop,
+                                  ),
+                                  SizedBox(
+                                      height: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: const Text('Open BottomSheet'),
+                  ),
+                  18.verticalSpace,
+                  TextField(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  18.verticalSpace,
+                  Text('Device width:${ScreenUtil().screenWidth}dp'),
+                  Text('Device height:${ScreenUtil().screenHeight}dp'),
+                  Text('Device pixel density:${ScreenUtil().pixelRatio}'),
+                  Text(
+                      'Bottom safe zone distance:${ScreenUtil().bottomBarHeight}dp'),
+                  Text('Status bar height:${ScreenUtil().statusBarHeight}dp'),
+                  Text(
+                      'The ratio of actual width to UI design:${ScreenUtil().scaleWidth}'),
+                  Text(
+                      'The ratio of actual height to UI design:${ScreenUtil().scaleHeight}'),
+                  10.verticalSpace,
+                  Text(
+                      'System font scaling factor:${ScreenUtil().textScaleFactor}'),
+                  5.verticalSpace,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
+                        '16sp, will not change with the system.',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.sp,
+                        ),
+                        textScaleFactor: 1.0,
+                      ),
+                      Text(
+                        '16sp,if data is not set in MediaQuery,my font size will change with the system.',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

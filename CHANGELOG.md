@@ -1,24 +1,100 @@
+# 5.9.0
+- ScreenUtilInit won't rebuild the whole widget tree
+- Add `fontSizeResolver` to specify how font size should be scaled
+- Add `diameter` & `diagonal` factors
+- `useInheritedMediaQuery` has not effect, and will be removed in next release
+- Fix `ensureScreenSize` in web platform
+- add deviceType
+
+# 5.8.4
+- bug fix
+- change useInheritedMediaQuery default value to false
+
+# 5.8.3
+- Adapt to flutter3.10
+
+# 5.8.2
+- change useInheritedMediaQuery default value to true
+- update readme
+- remove ScreenutilInit layout listener
+
+# 5.8.1
+- Limit flutter version > 3.10.0
+
+# 5.8.0
+- mirage flutter 3.10
+
+# 5.7.0
+- merge #464
+
+# 5.6.1
+
+- add spMax => max(toDouble(), sp), and spMin, for example: 12.spMax
+- FlutterView instead of FlutterWindow
+
+# 5.6.0
+
+- bug fix: #434
+- add w and h on EdgeInsets,Radius,BorderRadius,BoxConstraints
+
+# 5.5.4
+
+- Bug Fix: False sizes when using DevicePreview
+
+# 5.5.3+2
+
+- Fix #398
+
+# 5.5.3+1
+
+- Fix compatibility with flutter sdk 2.x
+
+# 5.5.3
+
+- Bug Fix: Some widgets disapear because of parent rebuild.
+- Bug Fix: issue #362. Null check operator used on a null value when using ScreenUtil.init().
+- Re-add context to builder parameters **(users request)**.
+- Add some standard rebuild factors.
+
+# 5.5.2
+
+- Add rebuildFactor property
+- Bug Fix: False sizes when resizing
+
+# 5.5.1
+
+- Bug Fix: Assertion Failed (Find MediaQuery in ancestors)
+- Some performance improvements and fixes
+
+# 5.5.0
+
+- Bug Fix: Reaching context that no longer used.
+
+# 5.4.0+1
+
+- delete log
+
 # 5.4.0
+
 - merge #352
 
 # 5.3.1
-- add num.verticalSpacingRadius
-  num.horizontalSpaceRadius
-  num.setVerticalSpacingFromWidth
+
+- add num.verticalSpacingRadius num.horizontalSpaceRadius num.setVerticalSpacingFromWidth
 - update num.horizontalSpace
-  
+
 # 5.3.0
-- For the size, use the context to get it first, which needs to provide the Context
-  More rigorous context checking
+
+- For the size, use the context to get it first, which needs to provide the Context More rigorous
+  context checking
 
 # 5.2.0
 
 - Rollback of 5.1.1 commit
 - Fix the problem of inaccurate height
 - merge #332(https://github.com/OpenFlutter/flutter_screenutil/pull/332)
-  add
-  num.setVerticalSpacing  // SizedBox(height: num * scaleHeight)
-  num.horizontalSpace  // SizedBox(height: num * scaleWidth)
+  add num.setVerticalSpacing // SizedBox(height: num * scaleHeight)
+  num.horizontalSpace // SizedBox(height: num * scaleWidth)
 
 # 5.1.1
 
