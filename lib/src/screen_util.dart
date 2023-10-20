@@ -102,7 +102,7 @@ class ScreenUtil {
   }) {
     try {
       if (data != null)
-        _instance._data = data;
+        _instance._data = data.copyWith(size: designSize);
       else
         data = _instance._data;
 
